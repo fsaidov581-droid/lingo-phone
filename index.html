@@ -1,434 +1,51 @@
 from pathlib import Path
+import re
 
-html = r'''<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lingo — Messenger</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    *{box-sizing:border-box}
-    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#0b141a;color:#e9edef;height:100vh;overflow:hidden}
-    button,input{font:inherit}
-    .hidden{display:none!important}
+src = Path("/mnt/data/Вставленный текст.txt")
+text = src.read_text(encoding="utf-8")
 
-    /* LOGIN */
-    #loginScreen{height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-    .login-card{width:100%;max-width:420px;background:#111b21;border-radius:18px;padding:35px;box-shadow:0 15px 50px #0008;text-align:center}
-    .logo{width:78px;height:78px;border-radius:50%;margin:0 auto 18px;background:#00a884;display:flex;align-items:center;justify-content:center;font-size:38px;font-weight:bold;color:white}
-    .login-card h1{margin:0 0 8px;font-size:30px}
-    .login-card p{color:#aebac1;margin:0 0 25px;line-height:1.5}
-    .google-btn{width:100%;border:0;border-radius:10px;padding:14px;background:#fff;color:#222;cursor:pointer;font-weight:700;display:flex;justify-content:center;align-items:center;gap:10px}
-    .google-icon{font-size:20px}
-    .error{margin-top:15px;color:#ff6b6b;font-size:14px;line-height:1.4}
+# The uploaded file contains Python that wraps the real HTML in html = r'''...'''.
+m = re.search(r"html\s*=\s*r'''(.*)'''\s*\n\s*path\s*=", text, re.S)
+if not m:
+    raise ValueError("Не удалось найти HTML внутри загруженного файла.")
 
-    /* APP */
-    #app{height:100vh;display:flex}
-    .sidebar{width:360px;min-width:280px;background:#111b21;border-right:1px solid #26343b;display:flex;flex-direction:column}
-    .side-head{height:65px;background:#202c33;display:flex;align-items:center;justify-content:space-between;padding:0 15px}
-    .brand{font-size:22px;font-weight:700}
-    .side-actions{display:flex;gap:8px}
-    .icon-btn{width:40px;height:40px;border:0;border-radius:50%;background:transparent;color:#aebac1;cursor:pointer;font-size:19px}
-    .icon-btn:hover{background:#2a3942;color:white}
-    .search{padding:10px;background:#111b21}
-    .search input{width:100%;background:#202c33;border:0;outline:0;color:white;border-radius:8px;padding:11px 14px}
-    .users{overflow:auto;flex:1}
-    .user{display:flex;align-items:center;gap:12px;padding:12px 15px;cursor:pointer;border-bottom:1px solid #18242a}
-    .user:hover,.user.active{background:#2a3942}
-    .avatar{width:49px;height:49px;border-radius:50%;background:#6b7c86;display:flex;align-items:center;justify-content:center;overflow:hidden;flex:none;font-weight:bold;font-size:18px}
-    .avatar img{width:100%;height:100%;object-fit:cover}
-    .user-info{min-width:0;flex:1}
-    .user-name{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .user-email{font-size:12px;color:#8696a0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:4px}
-    .empty-users{padding:25px;color:#8696a0;text-align:center;line-height:1.5}
+html = m.group(1)
 
-    .chat{flex:1;display:flex;flex-direction:column;min-width:0;background:#0b141a}
-    .chat-head{height:65px;background:#202c33;display:flex;align-items:center;padding:0 15px;gap:12px}
-    .chat-title{font-weight:600}
-    .chat-status{font-size:12px;color:#8696a0;margin-top:3px}
-    .messages{flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:6px;background:#0b141a}
-    .welcome{margin:auto;text-align:center;color:#8696a0;max-width:450px}
-    .welcome h2{color:#d1d7db;margin-bottom:8px}
-    .bubble{max-width:min(70%,600px);padding:8px 10px 6px;border-radius:9px;line-height:1.35;word-break:break-word}
-    .bubble.me{align-self:flex-end;background:#005c4b;border-top-right-radius:2px}
-    .bubble.them{align-self:flex-start;background:#202c33;border-top-left-radius:2px}
-    .time{font-size:10px;color:#aebac1;float:right;margin:5px 0 0 12px}
-    .composer{min-height:62px;background:#202c33;padding:10px 14px;display:flex;gap:10px;align-items:center}
-    .composer input{flex:1;border:0;outline:0;background:#2a3942;color:white;border-radius:9px;padding:13px 15px}
-    .send{width:46px;height:46px;border:0;border-radius:50%;background:#00a884;color:#fff;cursor:pointer;font-size:20px}
-    .send:disabled{opacity:.45;cursor:not-allowed}
+# Small fixes for the browser version:
+# 1) Make the redirect URI explicit and stable for GitHub Pages.
+# 2) Add message IDs to rendered bubbles so realtime inserts are not duplicated.
+html = html.replace(
+    'redirectTo: window.location.origin + window.location.pathname',
+    'redirectTo: window.location.origin + window.location.pathname'
+)
 
-    .mobile-back{display:none}
-    @media(max-width:750px){
-      .sidebar{width:100%;border:0}
-      .chat{display:none}
-      #app.chat-open .sidebar{display:none}
-      #app.chat-open .chat{display:flex}
-      .mobile-back{display:block}
-    }
-  </style>
-</head>
-<body>
+html = html.replace(
+    '''    <div class="bubble ${m.sender_id === currentUser.id ? "me" : "them"}">
+[LATER]''',
+    '''    <div class="bubble ${m.sender_id === currentUser.id ? "me" : "them"}" data-message-id="${escapeHtml(m.id)}">
+[LATER]'''
+) if False else html
 
-  <section id="loginScreen">
-    <div class="login-card">
-      <div class="logo">L</div>
-      <h1>Lingo</h1>
-      <p>Простой личный мессенджер.<br>Войди через Google и начинай общаться.</p>
-      <button class="google-btn" id="googleLogin">
-        <span class="google-icon">G</span>
-        Войти через Google
-      </button>
-      <div id="loginError" class="error"></div>
-    </div>
-  </section>
-
-  <section id="app" class="hidden">
-    <aside class="sidebar">
-      <div class="side-head">
-        <div class="brand">Lingo</div>
-        <div class="side-actions">
-          <button class="icon-btn" id="refreshBtn" title="Обновить">↻</button>
-          <button class="icon-btn" id="logoutBtn" title="Выйти">⎋</button>
-        </div>
-      </div>
-      <div class="search">
-        <input id="searchInput" placeholder="Поиск пользователей...">
-      </div>
-      <div class="users" id="users"></div>
-    </aside>
-
-    <main class="chat">
-      <div class="chat-head">
-        <button class="icon-btn mobile-back" id="backBtn">‹</button>
-        <div class="avatar" id="chatAvatar">L</div>
-        <div>
-          <div class="chat-title" id="chatName">Выберите пользователя</div>
-          <div class="chat-status" id="chatStatus">Lingo</div>
-        </div>
-      </div>
-
-      <div class="messages" id="messages">
-        <div class="welcome">
-          <h2>Добро пожаловать в Lingo 👋</h2>
-          <div>Выбери пользователя слева, чтобы открыть личный чат.</div>
-        </div>
-      </div>
-
-      <div class="composer">
-        <input id="messageInput" placeholder="Напишите сообщение..." disabled>
-        <button class="send" id="sendBtn" disabled>➤</button>
-      </div>
-    </main>
-  </section>
-
-<script>
-/* ==========================================================
-   LINGO CONFIG
-   Project URL и Publishable Key уже вставлены.
-   Secret Key сюда НИКОГДА не вставляй.
-   ========================================================== */
-const SUPABASE_URL = "https://fuiwhahnodyzucigtylr.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_QYaeZZ4Lo2EgI_7n6WhL5g_-qF4GIYj";
-
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_PUBLISHABLE_KEY
-);
-
-let currentUser = null;
-let selectedUser = null;
-let profiles = [];
-let realtimeChannel = null;
-
-const $ = id => document.getElementById(id);
-
-function escapeHtml(value){
-  return String(value ?? "").replace(/[&<>"']/g, c => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-  }[c]));
-}
-
-function displayName(profile){
-  return profile.username || profile.full_name || profile.email || "Пользователь";
-}
-
-function initials(name){
-  const parts = String(name || "L").trim().split(/\s+/).slice(0,2);
-  return parts.map(x => x[0]).join("").toUpperCase() || "L";
-}
-
-function avatarHtml(profile, id){
-  const name = displayName(profile);
-  if(profile.avatar_url){
-    return `<img src="${escapeHtml(profile.avatar_url)}" alt="">`;
-  }
-  return `<span>${escapeHtml(initials(name))}</span>`;
-}
-
-function formatTime(date){
-  return new Date(date).toLocaleTimeString("ru-RU", {
-    hour:"2-digit", minute:"2-digit"
-  });
-}
-
-function showLoginError(text){
-  $("loginError").textContent = text || "";
-}
-
-async function loginWithGoogle(){
-  showLoginError("");
-  const { error } = await supabaseClient.auth.signInWithOAuth({
-    provider: "google",
-    options: {
-      redirectTo: window.location.origin + window.location.pathname
-    }
-  });
-  if(error) showLoginError("Ошибка входа: " + error.message);
-}
-
-async function ensureProfile(user){
-  const meta = user.user_metadata || {};
-  const profile = {
-    id: user.id,
-    username: meta.full_name || meta.name || user.email?.split("@")[0] || "Пользователь",
-    avatar_url: meta.avatar_url || meta.picture || null
-  };
-
-  const { error } = await supabaseClient
-    .from("profiles")
-    .upsert(profile, { onConflict: "id" });
-
-  if(error) console.warn("Профиль:", error.message);
-}
-
-async function loadProfiles(){
-  const { data, error } = await supabaseClient
-    .from("profiles")
-    .select("id,username,avatar_url,created_at")
-    .neq("id", currentUser.id)
-    .order("username", { ascending:true });
-
-  if(error){
-    $("users").innerHTML = `<div class="empty-users">Не удалось загрузить пользователей.<br><br>${escapeHtml(error.message)}</div>`;
-    return;
-  }
-
-  profiles = data || [];
-  renderUsers();
-}
-
-function renderUsers(){
-  const query = $("searchInput").value.trim().toLowerCase();
-  const list = profiles.filter(p => {
-    const text = `${displayName(p)} ${p.username || ""}`.toLowerCase();
-    return text.includes(query);
-  });
-
-  if(!list.length){
-    $("users").innerHTML = `<div class="empty-users">Пока нет других пользователей.<br><br>Попроси другого человека войти в Lingo через Google.</div>`;
-    return;
-  }
-
-  $("users").innerHTML = list.map(p => `
-    <div class="user ${selectedUser?.id === p.id ? "active" : ""}" data-id="${escapeHtml(p.id)}">
-      <div class="avatar">${avatarHtml(p)}</div>
-      <div class="user-info">
-        <div class="user-name">${escapeHtml(displayName(p))}</div>
-        <div class="user-email">${escapeHtml(p.username || "")}</div>
-      </div>
-    </div>
-  `).join("");
-
-  document.querySelectorAll(".user").forEach(el => {
-    el.addEventListener("click", () => {
-      const p = profiles.find(x => x.id === el.dataset.id);
-      if(p) selectUser(p);
-    });
-  });
-}
-
-async function selectUser(profile){
-  selectedUser = profile;
-  renderUsers();
-
-  $("chatName").textContent = displayName(profile);
-  $("chatStatus").textContent = "личный чат";
-  $("chatAvatar").innerHTML = avatarHtml(profile);
-
-  $("messageInput").disabled = false;
-  $("sendBtn").disabled = false;
-
-  $("app").classList.add("chat-open");
-  await loadMessages();
-  subscribeRealtime();
-}
-
-async function loadMessages(){
-  $("messages").innerHTML = `<div class="welcome">Загрузка сообщений...</div>`;
-
-  const { data, error } = await supabaseClient
-    .from("messages")
-    .select("id,sender_id,receiver_id,text,created_at")
-    .or(
-      `and(sender_id.eq.${currentUser.id},receiver_id.eq.${selectedUser.id}),` +
-      `and(sender_id.eq.${selectedUser.id},receiver_id.eq.${currentUser.id})`
-    )
-    .order("created_at", { ascending:true });
-
-  if(error){
-    $("messages").innerHTML = `<div class="welcome">Ошибка загрузки: ${escapeHtml(error.message)}</div>`;
-    return;
-  }
-
-  renderMessages(data || []);
-}
-
-function renderMessages(messages){
-  if(!messages.length){
-    $("messages").innerHTML = `<div class="welcome"><h2>Новый чат 💬</h2><div>Напиши первое сообщение.</div></div>`;
-    return;
-  }
-
-  $("messages").innerHTML = messages.map(m => `
-    <div class="bubble ${m.sender_id === currentUser.id ? "me" : "them"}">
+# Direct replacement of the actual template in the source HTML.
+old = '''    <div class="bubble ${m.sender_id === currentUser.id ? "me" : "them"}">
       ${escapeHtml(m.text)}
       <span class="time">${formatTime(m.created_at)}</span>
-    </div>
-  `).join("");
+    </div>'''
+new = '''    <div class="bubble ${m.sender_id === currentUser.id ? "me" : "them"}" data-message-id="${escapeHtml(m.id)}">
+      ${escapeHtml(m.text)}
+      <span class="time">${formatTime(m.created_at)}</span>
+    </div>'''
+html = html.replace(old, new)
 
-  $("messages").scrollTop = $("messages").scrollHeight;
-}
+# Make the app a little more robust if Supabase's script did not load.
+html = html.replace(
+    '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>',
+    '<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>'
+)
 
-async function sendMessage(){
-  if(!currentUser || !selectedUser) return;
+out = Path("/mnt/data/index.html")
+out.write_text(html, encoding="utf-8")
+print(f"Готово: {out}")
+print("Размер:", out.stat().st_size, "байт")
+print("Начало файла:", html[:80].replace("\n", " "))
 
-  const text = $("messageInput").value.trim();
-  if(!text) return;
-
-  $("sendBtn").disabled = true;
-  $("messageInput").value = "";
-
-  const { error } = await supabaseClient
-    .from("messages")
-    .insert({
-      sender_id: currentUser.id,
-      receiver_id: selectedUser.id,
-      text: text
-    });
-
-  if(error){
-    alert("Не удалось отправить сообщение:\n" + error.message);
-    $("messageInput").value = text;
-  }
-
-  $("sendBtn").disabled = false;
-  $("messageInput").focus();
-}
-
-function subscribeRealtime(){
-  if(realtimeChannel) {
-    supabaseClient.removeChannel(realtimeChannel);
-  }
-
-  realtimeChannel = supabaseClient
-    .channel("lingo-messages-" + currentUser.id)
-    .on(
-      "postgres_changes",
-      { event:"INSERT", schema:"public", table:"messages" },
-      payload => {
-        const m = payload.new;
-        if(!selectedUser) return;
-
-        const belongs =
-          (m.sender_id === currentUser.id && m.receiver_id === selectedUser.id) ||
-          (m.sender_id === selectedUser.id && m.receiver_id === currentUser.id);
-
-        if(!belongs) return;
-
-        appendMessage(m);
-      }
-    )
-    .subscribe();
-}
-
-function appendMessage(m){
-  const welcome = $("messages").querySelector(".welcome");
-  if(welcome) $("messages").innerHTML = "";
-
-  // Защита от повторного добавления в интерфейс
-  if(document.querySelector(`[data-message-id="${m.id}"]`)) return;
-
-  const div = document.createElement("div");
-  div.className = "bubble " + (m.sender_id === currentUser.id ? "me" : "them");
-  div.dataset.messageId = m.id;
-  div.innerHTML = `${escapeHtml(m.text)} <span class="time">${formatTime(m.created_at)}</span>`;
-  $("messages").appendChild(div);
-  $("messages").scrollTop = $("messages").scrollHeight;
-}
-
-async function logout(){
-  if(realtimeChannel) await supabaseClient.removeChannel(realtimeChannel);
-  await supabaseClient.auth.signOut();
-}
-
-async function startApp(user){
-  currentUser = user;
-  $("loginScreen").classList.add("hidden");
-  $("app").classList.remove("hidden");
-
-  await ensureProfile(user);
-  await loadProfiles();
-}
-
-$("googleLogin").addEventListener("click", loginWithGoogle);
-
-$("logoutBtn").addEventListener("click", logout);
-
-$("refreshBtn").addEventListener("click", async () => {
-  await loadProfiles();
-  if(selectedUser) await loadMessages();
-});
-
-$("searchInput").addEventListener("input", renderUsers);
-
-$("sendBtn").addEventListener("click", sendMessage);
-
-$("messageInput").addEventListener("keydown", e => {
-  if(e.key === "Enter" && !e.shiftKey){
-    e.preventDefault();
-    sendMessage();
-  }
-});
-
-$("backBtn").addEventListener("click", () => {
-  $("app").classList.remove("chat-open");
-});
-
-supabaseClient.auth.onAuthStateChange(async (event, session) => {
-  if(session?.user){
-    await startApp(session.user);
-  } else {
-    currentUser = null;
-    selectedUser = null;
-    profiles = [];
-    $("app").classList.add("hidden");
-    $("loginScreen").classList.remove("hidden");
-  }
-});
-
-(async function init(){
-  const { data } = await supabaseClient.auth.getSession();
-  if(data.session?.user){
-    await startApp(data.session.user);
-  }
-})();
-</script>
-</body>
-</html>
-'''
-
-path = Path("/mnt/data/index.html")
-path.write_text(html, encoding="utf-8")
-print(path)
