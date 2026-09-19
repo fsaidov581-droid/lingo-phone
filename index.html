@@ -1,0 +1,336 @@
+from pathlib import Path
+
+html = r'''<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<meta name="description" content="Lingo Messenger — простой личный мессенджер">
+<title>Lingo Messenger</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:Inter,Arial,sans-serif;background:#f3f6fb;color:#111827}
+button,input{font:inherit}button{cursor:pointer;border:0}
+.app{min-height:100%;display:flex;align-items:center;justify-content:center;padding:18px}
+.card{width:min(440px,100%);background:#fff;border-radius:24px;padding:28px;box-shadow:0 15px 50px #0001}
+.logo{font-size:42px;text-align:center}.brand{text-align:center;font-size:28px;font-weight:800;margin:5px 0}.muted{color:#6b7280;text-align:center}
+label{display:block;font-weight:700;margin:16px 0 7px}input{width:100%;padding:13px 14px;border:1px solid #d8dee9;border-radius:12px;outline:none}input:focus{border-color:#64748b}
+.primary{width:100%;padding:13px;border-radius:12px;background:#111827;color:#fff;font-weight:700;margin-top:18px}.secondary{width:100%;padding:12px;border-radius:12px;background:#eef2f7;color:#111827;font-weight:700;margin-top:10px}
+.error{margin-top:12px;padding:10px;border-radius:10px;background:#fff0f0;color:#b42318;font-size:14px;display:none}
+.ok{margin-top:12px;padding:10px;border-radius:10px;background:#ecfdf3;color:#027a48;font-size:14px;display:none}
+.hidden{display:none!important}
+
+.shell{height:min(820px,100vh);width:min(1100px,100%);background:#fff;border-radius:22px;overflow:hidden;box-shadow:0 15px 60px #0002;display:grid;grid-template-columns:330px 1fr}
+.sidebar{border-right:1px solid #e5e7eb;display:flex;flex-direction:column;min-width:0}
+.top{padding:20px;border-bottom:1px solid #e5e7eb}.topline{display:flex;align-items:center;justify-content:space-between}.title{font-size:22px;font-weight:800}
+.me{font-size:13px;color:#6b7280;margin-top:5px}.id{font-size:12px;color:#374151;background:#f3f4f6;border-radius:8px;padding:5px 7px;display:inline-block;margin-top:7px;cursor:pointer}
+.search{padding:14px;border-bottom:1px solid #e5e7eb}.search input{padding:11px}
+.chats{overflow:auto;flex:1}.empty{padding:25px;color:#6b7280;text-align:center;font-size:14px}
+.chatitem{padding:14px 18px;border-bottom:1px solid #f1f3f5;cursor:pointer}.chatitem:hover{background:#f8fafc}.chatname{font-weight:750}.chatid{font-size:12px;color:#6b7280;margin-top:3px}
+.logout{margin:12px;padding:10px;border-radius:10px;background:#f3f4f6}
+
+.main{display:flex;flex-direction:column;min-width:0}.welcome{margin:auto;text-align:center;color:#6b7280;padding:30px}.welcome b{display:block;color:#111827;font-size:23px;margin-bottom:8px}
+.chathead{height:72px;border-bottom:1px solid #e5e7eb;padding:12px 18px;display:flex;align-items:center;gap:12px}.avatar{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#111827;color:#fff;font-weight:800}.back{display:none;background:#f3f4f6;border-radius:9px;padding:8px}
+.messages{flex:1;overflow:auto;padding:20px;background:#f8fafc}.bubble{max-width:min(70%,520px);padding:10px 13px;margin:7px 0;border-radius:16px;word-break:break-word}.bubble.me{margin-left:auto;background:#111827;color:#fff;border-bottom-right-radius:5px}.bubble.them{background:#fff;border:1px solid #e5e7eb;border-bottom-left-radius:5px}.time{display:block;font-size:10px;opacity:.65;margin-top:4px}
+.compose{padding:12px;border-top:1px solid #e5e7eb;display:flex;gap:8px}.compose input{flex:1}.send{width:48px;border-radius:12px;background:#111827;color:#fff;font-size:20px}
+.notice{font-size:12px;text-align:center;color:#6b7280;padding:8px}
+@media(max-width:700px){.app{padding:0}.shell{height:100vh;border-radius:0;display:block}.sidebar{height:100%;border:0}.main{position:absolute;inset:0;background:#fff}.main.hidden{display:none!important}.back{display:block}.bubble{max-width:82%}}
+</style>
+</head>
+<body>
+<div id="authView" class="app">
+  <div class="card">
+    <div class="logo">🦉</div>
+    <div class="brand">Lingo Messenger</div>
+    <p class="muted">Общайся с друзьями просто и удобно</p>
+
+    <div id="loginBox">
+      <label>Email</label>
+      <input id="loginEmail" type="email" autocomplete="email" placeholder="you@example.com">
+      <label>Пароль</label>
+      <input id="loginPassword" type="password" autocomplete="current-password" placeholder="••••••••">
+      <button id="loginBtn" class="primary">Войти</button>
+      <button id="showRegister" class="secondary">Создать аккаунт</button>
+    </div>
+
+    <div id="registerBox" class="hidden">
+      <label>Email</label>
+      <input id="regEmail" type="email" autocomplete="email" placeholder="you@example.com">
+      <label>Пароль</label>
+      <input id="regPassword" type="password" autocomplete="new-password" placeholder="Минимум 6 символов">
+      <label>Как тебя зовут?</label>
+      <input id="regName" type="text" maxlength="40" placeholder="Например, Farukh">
+      <button id="registerBtn" class="primary">Зарегистрироваться</button>
+      <button id="showLogin" class="secondary">У меня уже есть аккаунт</button>
+    </div>
+    <div id="authError" class="error"></div>
+    <div id="authOk" class="ok"></div>
+    <div class="notice">Ваши сообщения доступны только участникам соответствующего чата.</div>
+  </div>
+</div>
+
+<div id="appView" class="app hidden">
+ <div class="shell">
+  <aside id="sidebar" class="sidebar">
+   <div class="top">
+    <div class="topline"><div class="title">🦉 Lingo</div><button id="refreshBtn" title="Обновить">↻</button></div>
+    <div id="myName" class="me"></div>
+    <div id="myId" class="id" title="Нажмите, чтобы скопировать"></div>
+   </div>
+   <div class="search">
+    <input id="searchInput" placeholder="Найти по Lingo ID">
+    <button id="searchBtn" class="primary" style="margin-top:8px">Найти пользователя</button>
+   </div>
+   <div id="chats" class="chats"><div class="empty">Пока нет чатов.<br>Найдите человека по его Lingo ID.</div></div>
+   <button id="logoutBtn" class="logout">Выйти</button>
+  </aside>
+
+  <main id="main" class="main">
+   <div id="welcome" class="welcome"><b>Добро пожаловать в Lingo Messenger</b>Найдите пользователя по Lingo ID и начните разговор.</div>
+   <div id="chatView" class="hidden" style="display:flex;flex-direction:column;height:100%">
+    <div class="chathead">
+      <button id="backBtn" class="back">←</button>
+      <div id="chatAvatar" class="avatar">L</div>
+      <div><strong id="chatName"></strong><div id="chatId" class="me"></div></div>
+    </div>
+    <div id="messages" class="messages"></div>
+    <form id="compose" class="compose">
+      <input id="messageInput" maxlength="4000" autocomplete="off" placeholder="Написать сообщение...">
+      <button class="send" type="submit">➤</button>
+    </form>
+   </div>
+  </main>
+ </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = "https://fuiwhahnodyzucigtylr.supabase.co";
+const SUPABASE_KEY = "sb_publishable_QYaeZZ4Lo2EgI_7n6WhL5g_-qF4GIYj";
+
+const { createClient } = window.supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null;
+let myProfile = null;
+let currentChat = null;
+let realtimeChannel = null;
+let chatList = [];
+
+const $ = id => document.getElementById(id);
+
+function showAuthError(msg){$("authError").textContent=msg;$("authError").style.display="block";$("authOk").style.display="none"}
+function showAuthOk(msg){$("authOk").textContent=msg;$("authOk").style.display="block";$("authError").style.display="none"}
+function clearAuthMsg(){$("authError").style.display="none";$("authOk").style.display="none"}
+
+function escapeHtml(v){
+ return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+}
+function formatTime(v){return new Date(v).toLocaleTimeString("ru-RU",{hour:"2-digit",minute:"2-digit"})}
+function makeLingoId(){
+ const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+ let out="LINGO-";
+ for(let i=0;i<7;i++) out+=chars[Math.floor(Math.random()*chars.length)];
+ return out;
+}
+async function createUniqueLingoId(){
+ for(let i=0;i<10;i++){
+   const id=makeLingoId();
+   const {data}=await db.from("profiles").select("id").eq("lingo_id",id).maybeSingle();
+   if(!data)return id;
+ }
+ throw new Error("Не удалось создать уникальный Lingo ID.");
+}
+
+function switchLogin(){ $("loginBox").classList.remove("hidden"); $("registerBox").classList.add("hidden"); clearAuthMsg() }
+function switchRegister(){ $("loginBox").classList.add("hidden"); $("registerBox").classList.remove("hidden"); clearAuthMsg() }
+
+$("showRegister").onclick=switchRegister;
+$("showLogin").onclick=switchLogin;
+
+$("registerBtn").onclick=async()=>{
+ clearAuthMsg();
+ const email=$("regEmail").value.trim(), password=$("regPassword").value, name=$("regName").value.trim();
+ if(!email||!password||!name)return showAuthError("Заполните email, пароль и имя.");
+ if(password.length<6)return showAuthError("Пароль должен содержать минимум 6 символов.");
+ $("registerBtn").disabled=true;
+ try{
+   const {data,error}=await db.auth.signUp({email,password});
+   if(error)throw error;
+   if(!data.user)throw new Error("Регистрация не завершена.");
+   const lingoId=await createUniqueLingoId();
+   const {error:pError}=await db.from("profiles").insert({id:data.user.id,name,lingo_id:lingoId});
+   if(pError)throw pError;
+   if(data.session){
+     await loadApp(data.user);
+   }else{
+     showAuthOk("Аккаунт создан. Если включено подтверждение email, проверьте почту и затем войдите.");
+     switchLogin();
+   }
+ }catch(e){showAuthError(e.message||"Ошибка регистрации.")}finally{$("registerBtn").disabled=false}
+};
+
+$("loginBtn").onclick=async()=>{
+ clearAuthMsg();
+ const email=$("loginEmail").value.trim(),password=$("loginPassword").value;
+ if(!email||!password)return showAuthError("Введите email и пароль.");
+ $("loginBtn").disabled=true;
+ try{
+   const {data,error}=await db.auth.signInWithPassword({email,password});
+   if(error)throw error;
+   await loadApp(data.user);
+ }catch(e){showAuthError(e.message||"Ошибка входа.")}finally{$("loginBtn").disabled=false}
+};
+
+async function loadApp(user){
+ currentUser=user;
+ let {data:profile,error}=await db.from("profiles").select("*").eq("id",user.id).maybeSingle();
+ if(error)throw error;
+ if(!profile){
+   const name=(user.email||"User").split("@")[0];
+   const lingoId=await createUniqueLingoId();
+   const ins=await db.from("profiles").insert({id:user.id,name,lingo_id:lingoId}).select().single();
+   if(ins.error)throw ins.error;
+   profile=ins.data;
+ }
+ myProfile=profile;
+ $("myName").textContent=profile.name;
+ $("myId").textContent=profile.lingo_id;
+ $("authView").classList.add("hidden");
+ $("appView").classList.remove("hidden");
+ $("main").classList.remove("hidden");
+ $("chatView").classList.add("hidden");
+ $("welcome").classList.remove("hidden");
+ await loadChats();
+ subscribeRealtime();
+}
+
+async function loadChats(){
+ const {data,error}=await db.from("messages")
+   .select("sender_id,receiver_id,created_at")
+   .or(`sender_id.eq.${currentUser.id},receiver_id.eq.${currentUser.id}`)
+   .order("created_at",{ascending:false})
+   .limit(300);
+ if(error){console.warn(error);return}
+ const ids=[];
+ for(const m of data||[]){
+   const id=m.sender_id===currentUser.id?m.receiver_id:m.sender_id;
+   if(!ids.includes(id))ids.push(id);
+ }
+ if(!ids.length){$("chats").innerHTML='<div class="empty">Пока нет чатов.<br>Найдите человека по его Lingo ID.</div>';return}
+ const {data:profiles,error:pErr}=await db.from("profiles").select("id,name,lingo_id").in("id",ids);
+ if(pErr){console.warn(pErr);return}
+ chatList=profiles||[];
+ renderChats();
+}
+
+function renderChats(){
+ $("chats").innerHTML="";
+ if(!chatList.length){$("chats").innerHTML='<div class="empty">Пока нет чатов.</div>';return}
+ chatList.forEach(p=>{
+   const el=document.createElement("div");el.className="chatitem";
+   el.innerHTML=`<div class="chatname">${escapeHtml(p.name)}</div><div class="chatid">${escapeHtml(p.lingo_id)}</div>`;
+   el.onclick=()=>openChat(p);
+   $("chats").appendChild(el);
+ });
+}
+
+$("searchBtn").onclick=searchUser;
+$("searchInput").onkeydown=e=>{if(e.key==="Enter")searchUser()};
+async function searchUser(){
+ const id=$("searchInput").value.trim().toUpperCase();
+ if(!id)return;
+ const {data,error}=await db.from("profiles").select("id,name,lingo_id").eq("lingo_id",id).maybeSingle();
+ if(error)return alert("Ошибка поиска: "+error.message);
+ if(!data)return alert("Пользователь с таким Lingo ID не найден.");
+ if(data.id===currentUser.id)return alert("Это ваш собственный Lingo ID.");
+ if(!chatList.some(x=>x.id===data.id)){chatList.unshift(data);renderChats()}
+ openChat(data);
+}
+
+async function openChat(profile){
+ currentChat=profile;
+ $("welcome").classList.add("hidden");
+ $("chatView").classList.remove("hidden");
+ $("chatName").textContent=profile.name;
+ $("chatId").textContent=profile.lingo_id;
+ $("chatAvatar").textContent=(profile.name||"L").trim().charAt(0).toUpperCase();
+ $("messages").innerHTML='<div class="empty">Загрузка...</div>';
+ await loadMessages();
+ if(innerWidth<=700){$("sidebar").classList.add("hidden")}
+}
+
+async function loadMessages(){
+ if(!currentChat)return;
+ const a=currentUser.id,b=currentChat.id;
+ const {data,error}=await db.from("messages").select("*")
+   .or(`and(sender_id.eq.${a},receiver_id.eq.${b}),and(sender_id.eq.${b},receiver_id.eq.${a})`)
+   .order("created_at",{ascending:true}).limit(500);
+ if(error){$("messages").innerHTML=`<div class="empty">Не удалось загрузить сообщения.<br>${escapeHtml(error.message)}</div>`;return}
+ renderMessages(data||[]);
+}
+function renderMessages(list){
+ $("messages").innerHTML="";
+ if(!list.length){$("messages").innerHTML='<div class="empty">Начните разговор 👋</div>';return}
+ list.forEach(addBubble);
+ $("messages").scrollTop=$("messages").scrollHeight;
+}
+function addBubble(m){
+ if($(`[data-message-id="${CSS.escape(String(m.id))}"]`))return;
+ const el=document.createElement("div");
+ el.className="bubble "+(m.sender_id===currentUser.id?"me":"them");
+ el.dataset.messageId=m.id;
+ el.innerHTML=`${escapeHtml(m.text)}<span class="time">${formatTime(m.created_at)}</span>`;
+ $("messages").appendChild(el);
+ $("messages").scrollTop=$("messages").scrollHeight;
+}
+
+$("compose").onsubmit=async e=>{
+ e.preventDefault();
+ const text=$("messageInput").value.trim();
+ if(!text||!currentChat)return;
+ $("messageInput").value="";
+ const {data,error}=await db.from("messages").insert({
+   sender_id:currentUser.id,receiver_id:currentChat.id,text
+ }).select().single();
+ if(error){alert("Не удалось отправить сообщение: "+error.message);$("messageInput").value=text;return}
+ addBubble(data);
+};
+
+function subscribeRealtime(){
+ if(realtimeChannel)db.removeChannel(realtimeChannel);
+ realtimeChannel=db.channel("lingo-messages-"+currentUser.id)
+ .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:`receiver_id=eq.${currentUser.id}`},
+   payload=>{if(currentChat && payload.new.sender_id===currentChat.id)addBubble(payload.new); loadChats()})
+ .subscribe();
+}
+
+$("backBtn").onclick=()=>{
+ $("main").classList.remove("hidden");$("sidebar").classList.remove("hidden");
+ $("chatView").classList.add("hidden");$("welcome").classList.remove("hidden");currentChat=null;
+};
+$("refreshBtn").onclick=loadChats;
+$("myId").onclick=async()=>{try{await navigator.clipboard.writeText(myProfile.lingo_id);alert("Lingo ID скопирован: "+myProfile.lingo_id)}catch(e){alert(myProfile.lingo_id)}};
+$("logoutBtn").onclick=async()=>{await db.auth.signOut();location.reload()};
+
+db.auth.onAuthStateChange(async(event,session)=>{
+ if(session && !currentUser){
+   try{await loadApp(session.user)}catch(e){console.error(e)}
+ }
+});
+
+(async()=>{
+ try{
+  const {data}=await db.auth.getSession();
+  if(data.session)await loadApp(data.session.user);
+ }catch(e){console.error(e)}
+})();
+</script>
+</body>
+</html>
+'''
+
+path = Path("/mnt/data/index.html")
+path.write_text(html, encoding="utf-8")
+print(f"Готово: {path}")
+print(f"Размер: {path.stat().st_size} байт")
